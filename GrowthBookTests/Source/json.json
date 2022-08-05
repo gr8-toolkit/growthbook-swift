@@ -1738,6 +1738,40 @@
           }
         ],
         [
+          "Balance integration test",
+          {
+            "attributes": {
+              "balanceTotal": 0.0
+            },
+            "features": {
+              "feature": {
+                "defaultValue": null,
+                "rules": [
+                  {
+                    "condition": {
+                      "balanceTotal": 0.1
+                    },
+                    "force": false
+                  },
+                  {
+                    "condition": {
+                      "balanceTotal": 0
+                    },
+                    "force": true
+                  }
+                ]
+              }
+            }
+          },
+          "feature",
+          {
+            "value": true,
+            "on": true,
+            "off": false,
+            "source": "force"
+          }
+        ],        
+        [
           "Force attributes first condition",
           {
             "attributes": {
