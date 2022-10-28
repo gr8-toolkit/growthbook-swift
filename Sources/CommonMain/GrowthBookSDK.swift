@@ -111,6 +111,10 @@ public struct GrowthBookModel {
             gbContext.features = features
         } else {
             refreshCacheInternal()
+            
+            if case let .success(features) = featureVM.fetchCachedFeatures() {
+                gbContext.features = features
+            }
         }
         // Logger setup. if we have logHandler we have to re-initialise logger
         logger.minLevel = logLevel
@@ -157,17 +161,13 @@ public struct GrowthBookModel {
     }
     
     private func refreshCacheInternal(url: String? = nil, completion: CacheRefreshHandler? = nil) {
-        featureVM.fetchFeatures(apiUrl: url) {[weak self] result, isRemote in
+        featureVM.fetchFeatures(apiUrl: url) {[weak self] result in
             switch result {
                 case .success(let features):
                     self?.gbContext.features = features
-                    if isRemote {
-                        completion?(true)
-                    }
+                    completion?(true)
                 case .failure:
-                    if isRemote {
-                        completion?(false)
-                    }
+                    completion?(false)
             }
         }
     }

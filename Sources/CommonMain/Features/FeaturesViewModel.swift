@@ -1,6 +1,6 @@
 import Foundation
 
-typealias FeaturesHandler = (Result<Features, SDKError>, _ isRemote: Bool) -> Void
+typealias FeaturesHandler = (Result<Features, SDKError>) -> Void
 
 /// View Model for Features
 class FeaturesViewModel {
@@ -14,31 +14,36 @@ class FeaturesViewModel {
         self.cachingLayer = cachingLayer
     }
 
-    /// Fetch Features
-    func fetchFeatures(apiUrl: String?, completion: @escaping FeaturesHandler) {
+    func fetchCachedFeatures() -> Result<Features, SDKError> {
         // Check for cache data
         if let json = cachingLayer.getContent(fileName: Constants.featureCache) {
             let decoder = JSONDecoder()
             if let jsonPetitions = try? decoder.decode(FeaturesDataModel.self, from: json) {
                 if let features = jsonPetitions.features {
-                    completion(.success(features), false)
+                    return .success(features)
                 } else {
-                    completion(.failure(.failedParsedData), false)
                     logger.error("Failed parsed local data")
+                    return.failure(.failedParsedData)
                 }
             }
-        } else {
-            completion(.failure(.failedToLoadData), false)
-            logger.error("Failed load local data")
         }
-
-        guard let apiUrl = apiUrl else { return }
+        logger.error("Failed load local data")
+        return .failure(.failedToLoadData)
+    }
+    
+    /// Fetch Features
+    func fetchFeatures(apiUrl: String?, completion: @escaping FeaturesHandler) {
+        guard let apiUrl = apiUrl else {
+            completion(.failure(.failedToLoadData))
+            return
+        }
+        
         dataSource.fetchFeatures(apiUrl: apiUrl) { [weak self] result in
             switch result {
             case .success(let data):
                 self?.prepareFeaturesData(data: data, completion: completion)
             case .failure(let error):
-                completion(.failure(.failedToLoadData), true)
+                completion(.failure(.failedToLoadData))
                 logger.error("Failed get features: \(error.localizedDescription)")
             }
         }
@@ -53,10 +58,10 @@ class FeaturesViewModel {
 
         if let jsonPetitions = try? decoder.decode(FeaturesDataModel.self, from: data) {
             guard let features = jsonPetitions.features else {
-                completion(.failure(.failedParsedData), true)
+                completion(.failure(.failedParsedData))
                 return
             }
-            completion(.success(features), true)
+            completion(.success(features))
         }
     }
 }
