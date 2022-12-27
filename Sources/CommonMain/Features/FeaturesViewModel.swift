@@ -62,6 +62,8 @@ class FeaturesViewModel {
                 return
             }
             completion(.success(features))
+            return
         }
+        completion(.failure(.failedParsedData))
     }
 }
