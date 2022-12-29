@@ -65,8 +65,15 @@ class GrowthBookSDKBuilderTests: XCTestCase {
             .setNetworkDispatcher(networkDispatcher: MockNetworkClient(successResponse: MockResponse().successResponse, error: nil))
             .initializer()
         
-        XCTAssertTrue(sdkInstance.getFeatures().contains(where: {$0.key == "onboarding"}))
-        XCTAssertFalse(sdkInstance.getFeatures().contains(where: {$0.key == "fwrfewrfe"}))
+        let completedExpectation = expectation(description: "Completed")
+        
+        sdkInstance.refreshCache { _ in
+            XCTAssertTrue(sdkInstance.getFeatures().contains(where: {$0.key == "onboarding"}))
+            XCTAssertFalse(sdkInstance.getFeatures().contains(where: {$0.key == "fwrfewrfe"}))
+            completedExpectation.fulfill()
+        }
+
+        waitForExpectations(timeout: 0.3, handler: nil)
     }
     
     func testSDKRunMethods() throws {
