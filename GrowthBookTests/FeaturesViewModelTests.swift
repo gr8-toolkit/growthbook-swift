@@ -9,7 +9,7 @@ class FeaturesViewModelTests: XCTestCase {
         let viewModel = FeaturesViewModel(dataSource: datasource, cachingLayer: MockCachingLayer())
 
         let completedExpectation = expectation(description: "Completed")
-        viewModel.fetchFeatures(apiUrl: "") { result, _ in
+        viewModel.fetchFeatures(apiUrl: "") { result in
             if case .success = result {
                 completedExpectation.fulfill()
             }
@@ -24,7 +24,7 @@ class FeaturesViewModelTests: XCTestCase {
         let viewModel = FeaturesViewModel(dataSource: datasource, cachingLayer: MockCachingLayer())
 
         let errorExpectation = expectation(description: "Error")
-        viewModel.fetchFeatures(apiUrl: "") { result, _ in
+        viewModel.fetchFeatures(apiUrl: "") { result in
             if case .failure = result {
                 errorExpectation.fulfill()
             }
@@ -39,7 +39,7 @@ class FeaturesViewModelTests: XCTestCase {
         let viewModel = FeaturesViewModel(dataSource: datasource, cachingLayer: MockCachingLayer())
         
         let errorExpectation = expectation(description: "Invalid")
-        viewModel.fetchFeatures(apiUrl: "") { result, _ in
+        viewModel.fetchFeatures(apiUrl: "") { result in
             if case .failure = result {
                 errorExpectation.fulfill()
             }
