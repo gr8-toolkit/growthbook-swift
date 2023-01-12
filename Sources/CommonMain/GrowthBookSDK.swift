@@ -98,6 +98,11 @@ public struct GrowthBookModel {
     private var networkDispatcher: NetworkProtocol
     public var gbContext: Context
     private var featureVM: FeaturesViewModel!
+    
+    private let queue = DispatchQueue(
+        label: "Growthbook.\(UUID().uuidString)",
+        attributes: .concurrent
+    )
 
     init(context: Context,
          logLevel: Level = .info,
@@ -127,17 +132,19 @@ public struct GrowthBookModel {
 
     /// Get Context - Holding the complete data regarding cached features & attributes etc.
     @objc public func getGBContext() -> Context {
-        return gbContext
+        return queue.sync {
+            gbContext
+        }
     }
 
     /// Get Cached Features
     @objc public func getFeatures() -> [String: Feature] {
-        return gbContext.features
+        return queue.sync { gbContext.features }
     }
 
     /// Get the value of the feature with a fallback
     public func getFeatureValue(feature id: String, default defaultValue: JSON) -> JSON {
-        return FeatureEvaluator().evaluateFeature(context: gbContext, featureKey: id).value ?? defaultValue
+        return queue.sync { FeatureEvaluator().evaluateFeature(context: gbContext, featureKey: id).value ?? defaultValue }
     }
 
         /// The setEncryptedFeatures method takes an encrypted string with an encryption key and then decrypts it with the default method of decrypting or with a method of decrypting from the user
@@ -157,12 +164,14 @@ public struct GrowthBookModel {
               let features = try? decoder.decode([String: Feature].self, from: Data(plainTextBuffer))
         else { return }
 
-        gbContext.features = features
+        queue.async(flags: .barrier) { [weak gbContext] in
+            gbContext?.features = features
+        }
     }
 
     /// The feature method takes a single string argument, which is the unique identifier for the feature and returns a FeatureResult object.
     @objc public func evalFeature(id: String) -> FeatureResult {
-        return FeatureEvaluator().evaluateFeature(context: gbContext, featureKey: id)
+        return queue.sync { FeatureEvaluator().evaluateFeature(context: gbContext, featureKey: id) }
     }
 
     /// The isOn method takes a single string argument, which is the unique identifier for the feature and returns the feature state on/off
@@ -172,20 +181,25 @@ public struct GrowthBookModel {
 
     /// The run method takes an Experiment object and returns an experiment result
     @objc public func run(experiment: Experiment) -> ExperimentResult {
-        return ExperimentEvaluator().evaluateExperiment(context: gbContext, experiment: experiment)
+        return queue.sync { ExperimentEvaluator().evaluateExperiment(context: gbContext, experiment: experiment) }
     }
 
     /// The setAttributes method replaces the Map of user attributes that are used to assign variations
     @objc public func setAttributes(attributes: Any) {
-        gbContext.attributes = JSON(attributes)
+        queue.async(flags: .barrier) { [weak gbContext] in
+            gbContext?.attributes = JSON(attributes)
+        }
     }
     
     private func refreshCacheInternal(url: String? = nil, completion: CacheRefreshHandler? = nil) {
         featureVM.fetchFeatures(apiUrl: url) {[weak self] result in
             switch result {
                 case .success(let features):
-                    self?.gbContext.features = features
-                    completion?(true)
+                    self?.queue.async(flags: .barrier) {
+                        self?.gbContext.features = features
+                        completion?(true)
+                    }
+
                 case .failure:
                     completion?(false)
             }
