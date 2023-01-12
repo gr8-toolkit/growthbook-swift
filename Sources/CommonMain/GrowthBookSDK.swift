@@ -139,7 +139,11 @@ public struct GrowthBookModel {
 
     /// Get Cached Features
     @objc public func getFeatures() -> [String: Feature] {
-        return queue.sync { gbContext.features }
+        var features: [String: Feature] = [:]
+        queue.sync {
+            features = gbContext.features
+        }
+        return features
     }
 
     /// Get the value of the feature with a fallback
@@ -197,11 +201,15 @@ public struct GrowthBookModel {
                 case .success(let features):
                     self?.queue.async(flags: .barrier) {
                         self?.gbContext.features = features
-                        completion?(true)
+                        self?.queue.async {
+                            completion?(true)
+                        }
                     }
 
                 case .failure:
-                    completion?(false)
+                    self?.queue.async {
+                        completion?(false)
+                    }
             }
         }
     }
