@@ -51,19 +51,29 @@ class FeaturesViewModel {
 
     /// Cache API Response and push success event
     private func prepareFeaturesData(data: Data, completion: @escaping FeaturesHandler) {
-        cachingLayer.saveContent(fileName: Constants.featureCache, content: data)
+        
+        let internalCompletion: FeaturesHandler = { result in
+            DispatchQueue.main.async {
+                completion(result)
+            }
+        }
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            
+            self.cachingLayer.saveContent(fileName: Constants.featureCache, content: data)
 
-        // Call Success Delegate with mention of data available with remote
-        let decoder = JSONDecoder()
+            // Call Success Delegate with mention of data available with remote
+            let decoder = JSONDecoder()
 
-        if let jsonPetitions = try? decoder.decode(FeaturesDataModel.self, from: data) {
-            guard let features = jsonPetitions.features else {
-                completion(.failure(.failedParsedData))
+            if let jsonPetitions = try? decoder.decode(FeaturesDataModel.self, from: data) {
+                guard let features = jsonPetitions.features else {
+                    internalCompletion(.failure(.failedParsedData))
+                    return
+                }
+                internalCompletion(.success(features))
                 return
             }
-            completion(.success(features))
-            return
+            internalCompletion(.failure(.failedParsedData))
         }
-        completion(.failure(.failedParsedData))
     }
 }
